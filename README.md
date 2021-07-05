@@ -25,7 +25,7 @@ Tip: You can use custom labels for minor and major bumps by setting the `MINOR_B
 
 To extract the labels from merge requests, we need an API token to access the Gitlab API. Unfortunately, [GitLab doesn't yet support non-user specific access tokens](https://gitlab.com/gitlab-org/gitlab-ee/issues/756). 
 
-Ask your GitLab administrator to add a dummy user `${group_name}_npa` to GitLab with access only to your project group. Log in with this user, and create a [personal access token](https://gitlab.wbaa.pl.ing.net/profile/personal_access_tokens) with api scope access.
+Create a [personal access token](https://gitlab.wbaa.pl.ing.net/profile/personal_access_tokens) with api scope access.
 
 Copy the generated API token and keep it available for the next section.
 
@@ -39,8 +39,12 @@ Add the following variables:
 
 | Key             | Value                                                                |
 |-----------------|----------------------------------------------------------------------|
-| NPA_USERNAME    | The name of the NPA user created for your group: `${group_name}_npa` |
+| NPA_USERNAME    | The name of the user with the personal access token created above |
 | NPA_PASSWORD    | The personal access token with API scope generated for the NPA user  |
+| MINOR_BUMP_LABEL*| Alternative value for bumping minor version                         |
+| MAJOR_BUMP_LABEL*| Alternative value for bumping major version                         |
+| SKIP_DIRECT_COMMITS*| For versioning non MR commits set to `False`. By default `True`  |
+|* optional                                                                              |
 
 ## Pipeline configuration
 
@@ -73,9 +77,9 @@ generate-env-vars:
 
 version:
   stage: version
-  image: mrooding/gitlab-semantic-versioning:1.0.0
+  image: sod80/gitlab-semantic-versioning:1.0.0
   script:
-    - python3 /version-update/version-update.py
+    - bump-version
   only:
    - master
 
@@ -92,7 +96,7 @@ tag-latest:
     - tag
 ```
 
-## Merge request instructions
+## Versioning policy
 
 ### Squash commits when merge request is accepted
 
@@ -100,8 +104,10 @@ The new version will be determined based on the commit message. GitLab will auto
 
 This workflow relies on that commit message format and will fail the pipeline if it cannot extract the merge request id from the commit message. 
 
-Unfortunately, GitLab [doesn't yet allow for setting the checkbox to checked by default](https://gitlab.com/gitlab-org/gitlab-ce/issues/27956). Until implemented, make sure to manually check the squash option upon creation.
-
+You can set squashing commits by default [following this manual](https://docs.gitlab.com/ee/user/project/merge_requests/squash_and_merge.html#squash-commits-options)
+### Versioning non MR commits
+To allow versioning non MR commits on master You'll have to set up environment variable `SKIP_DIRECT_COMMITS` to `False`. It won't affect versioning MR commits.  
+Option turned off by default.
 ### Add a label to indicate a minor or major update
 
 As described above, if you want to perform a minor or major update, don't forget to add the appropriate label to your merge request.
